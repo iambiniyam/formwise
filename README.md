@@ -9,7 +9,7 @@ Drop in a fillable PDF. formwise reads the fields, matches them to your profile,
 
 ![formwise web UI](docs/demo.png)
 
-Status: v0.1.3.
+Status: v0.1.4.
 
 ## Why
 
@@ -127,7 +127,7 @@ The suite covers profile matching, field inspection, text and checkbox filling, 
 formwise is a Python package. It is not an npm package because the PDF runtime is Python.
 
 - PyPI: `pip install formwise`
-- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.3/formwise-0.1.3-py3-none-any.whl`
+- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.4/formwise-0.1.4-py3-none-any.whl`
 - The release workflow uses PyPI Trusted Publishing. A maintainer configures the PyPI project and the `pypi` environment once, then sets the repository variable `PUBLISH_PYPI=true`. No API token is stored in the repository. Until that setup exists, install the wheel attached to the GitHub release.
 
 ## Roadmap
