@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
+from .audit import load_audit, totals
 from .batch import fill_folder
 from .fields import fill_pdf, inspect_pdf
 from .profile import SAMPLE, ProfileLocked, load_profile, save_profile, value_for_field
@@ -110,6 +111,35 @@ def batch(
         for item in failed:
             console.print(f"[red]{item['input']}: {item['error']}[/red]")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def audit(path: Path = typer.Argument(..., exists=True, dir_okay=False)) -> None:
+    """Summarize a batch audit log."""
+    try:
+        payload = load_audit(path)
+    except (ValueError, TypeError) as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    summary = totals(payload)
+    console.print(
+        f"{summary['files']} files · {summary['filled']} filled fields · "
+        f"{summary['fields']} total fields · {summary['errors']} errors"
+    )
+    table = Table("Input", "Pages", "Filled", "Blank", "Status")
+    for item in payload["files"]:
+        table.add_row(
+            str(item.get("input") or ""),
+            str(item.get("pages") or "-"),
+            f"{item.get('filled') or 0}/{item.get('fields') or 0}",
+            str(len(item.get("blank") or [])),
+            "error" if item.get("error") else "ok",
+        )
+    console.print(table)
+    if summary["errors"]:
+        for item in payload["files"]:
+            if item.get("error"):
+                console.print(f"[red]{item.get('input')}: {item['error']}[/red]")
 
 
 @app.command()
