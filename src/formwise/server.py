@@ -21,7 +21,7 @@ MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 MAX_PREVIEW_PAGES = 10
 
-app = FastAPI(title="formwise", version="0.1.9")
+app = FastAPI(title="formwise", version="0.1.10")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

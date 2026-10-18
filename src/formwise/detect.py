@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from .fields import preview_pdf
@@ -77,15 +78,25 @@ def candidates_from_lines(lines, width: int, height: int, page: int = 0) -> list
     return output[:30]
 
 
+@lru_cache(maxsize=1)
+def _engine():
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+    except ImportError as exc:
+        raise DetectionUnavailable(
+            "OCR is not installed. Install with: uv pip install 'formwise[ocr]'"
+        ) from exc
+    return RapidOCR()
+
+
 def detect_overlay_fields(source: Path | str, page: int = 0) -> list[Candidate]:
     try:
         import numpy as np
-        from rapidocr_onnxruntime import RapidOCR
     except ImportError as exc:
         raise DetectionUnavailable(
             "OCR is not installed. Install with: uv pip install 'formwise[ocr]'"
         ) from exc
     image = preview_pdf(source, page=page, scale=2.0).convert("RGB")
     array = np.asarray(image)[:, :, ::-1]
-    result, _elapsed = RapidOCR()(array)
+    result, _elapsed = _engine()(array)
     return candidates_from_lines(result or [], image.width, image.height, page=page)
