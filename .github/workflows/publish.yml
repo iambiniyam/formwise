@@ -1,5 +1,6 @@
 name: publish
 on:
+  workflow_dispatch:
   release:
     types: [published]
 permissions:
@@ -7,6 +8,7 @@ permissions:
   contents: read
 jobs:
   pypi:
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH_PYPI == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
