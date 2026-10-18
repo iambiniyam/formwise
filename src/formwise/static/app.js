@@ -14,9 +14,14 @@ const flatten = document.getElementById("flatten");
 const fillButton = document.getElementById("fill");
 const download = document.getElementById("download");
 const fillStatus = document.getElementById("fill-status");
+const overlayEditor = document.getElementById("overlay-editor");
+const overlayFields = document.getElementById("overlay-fields");
+const markers = document.getElementById("markers");
+const addField = document.getElementById("add-field");
+const previewWrap = document.getElementById("preview-wrap");
 
 const MAX_BYTES = 25 * 1024 * 1024;
-const state = { file: null, job: null, fields: [] };
+const state = { file: null, job: null, fields: [], scanned: false, overlay: [] };
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -75,29 +80,75 @@ function fieldControl(field, index) {
   return `<input id="${id}" type="text" data-name="${escapeHtml(field.name)}" value="${escapeHtml(value)}">`;
 }
 
+function renderOverlay() {
+  markers.innerHTML = state.overlay.map((item, index) =>
+    `<span class="marker" style="left:${item.x * 100}%;top:${item.y * 100}%">${index + 1}</span>`
+  ).join("");
+  overlayFields.innerHTML = state.overlay.map((item, index) => `<div class="field overlay-row">
+    <label for="overlay-${index}">Value ${index + 1} <span class="type">page 1</span></label>
+    <input id="overlay-${index}" type="text" data-overlay="${index}" value="${escapeHtml(item.text)}" placeholder="Text to place">
+    <button type="button" data-remove="${index}">Remove</button>
+  </div>`).join("");
+}
+
+function addOverlay(x, y) {
+  state.overlay.push({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)), text: "" });
+  renderOverlay();
+  const input = overlayFields.querySelector(`[data-overlay="${state.overlay.length - 1}"]`);
+  if (input) input.focus();
+}
+
 function render(data) {
   state.job = data.job;
   state.fields = data.fields;
+  state.scanned = Boolean(data.scanned);
+  state.overlay = [];
   result.hidden = false;
   profileNote.hidden = !data.profile_locked;
   profileNote.textContent = data.profile_locked
     ? "The local profile is encrypted. Values are blank until you fill them manually."
     : "";
   scannedNote.hidden = !data.scanned;
-  summary.textContent = `${data.fields.length} fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`;
-  fieldsBox.innerHTML = data.fields
-    .map(
-      (field, index) => `<div class="field">
-        <label for="field-${index}">${escapeHtml(field.name)} <span class="type">${escapeHtml(field.type)}</span></label>
-        ${fieldControl(field, index)}
-      </div>`
-    )
-    .join("");
+  summary.textContent = state.scanned
+    ? `No AcroForm fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`
+    : `${data.fields.length} fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`;
+  fieldsBox.hidden = state.scanned;
+  overlayEditor.hidden = !state.scanned;
+  if (!state.scanned) {
+    fieldsBox.innerHTML = data.fields
+      .map(
+        (field, index) => `<div class="field">
+          <label for="field-${index}">${escapeHtml(field.name)} <span class="type">${escapeHtml(field.type)}</span></label>
+          ${fieldControl(field, index)}
+        </div>`
+      )
+      .join("");
+  }
   preview.src = data.preview;
+  renderOverlay();
   download.hidden = true;
   setFillStatus("");
   resultTitle.focus();
 }
+
+preview.addEventListener("click", (event) => {
+  if (!state.scanned) return;
+  const rect = preview.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  addOverlay((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
+});
+addField.addEventListener("click", () => addOverlay(0.5, 0.5));
+overlayFields.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-remove]");
+  if (!button) return;
+  state.overlay.splice(Number(button.dataset.remove), 1);
+  renderOverlay();
+});
+overlayFields.addEventListener("input", (event) => {
+  const index = event.target.dataset.overlay;
+  if (index == null) return;
+  state.overlay[Number(index)].text = event.target.value;
+});
 
 inspectButton.addEventListener("click", async () => {
   if (!state.file) { setStatus("Choose a PDF first.", true); return; }
@@ -125,19 +176,30 @@ inspectButton.addEventListener("click", async () => {
 fillButton.addEventListener("click", async () => {
   if (!state.job) return;
   const values = {};
-  for (const control of fieldsBox.querySelectorAll("[data-name]")) {
-    values[control.dataset.name] = control.dataset.kind === "checkbox"
-      ? (control.checked ? "Yes" : "Off")
-      : control.value;
+  if (!state.scanned) {
+    for (const control of fieldsBox.querySelectorAll("[data-name]")) {
+      values[control.dataset.name] = control.dataset.kind === "checkbox"
+        ? (control.checked ? "Yes" : "Off")
+        : control.value;
+    }
+  }
+  const overlay = state.scanned
+    ? state.overlay
+      .map((item) => ({ page: 0, x: item.x, y: item.y, text: item.text.trim() }))
+      .filter((item) => item.text)
+    : [];
+  if (state.scanned && !overlay.length) {
+    setFillStatus("Click the preview to place at least one value.", true);
+    return;
   }
   fillButton.disabled = true;
   fillButton.textContent = "Filling...";
-  setFillStatus("Writing the values into the PDF.");
+  setFillStatus(state.scanned ? "Placing the text on the page." : "Writing the values into the PDF.");
   try {
     const response = await fetch("/api/fill", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ job: state.job, values, flatten: flatten.checked }),
+      body: JSON.stringify({ job: state.job, values, overlay, flatten: flatten.checked }),
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
@@ -147,7 +209,7 @@ fillButton.addEventListener("click", async () => {
     preview.src = data.preview;
     download.href = data.download;
     download.hidden = false;
-    setFillStatus(`Filled ${data.filled.length} fields.`);
+    setFillStatus(data.stamped ? `Placed ${data.filled.length} text item(s).` : `Filled ${data.filled.length} fields.`);
   } catch (error) {
     setFillStatus(error.message, true);
   } finally {

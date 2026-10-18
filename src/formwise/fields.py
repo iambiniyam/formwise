@@ -174,6 +174,13 @@ def fill_pdf(
         page[NameObject("/Annots")] = ArrayObject(remaining)
 
     output = Path(output)
+    _write_output(writer, output, flatten)
+    return {"output": str(output), "filled": sorted(set(filled))}
+
+
+def _write_output(writer, output: Path, flatten: bool) -> None:
+    from io import BytesIO
+
     if flatten:
         buffer = BytesIO()
         writer.write(buffer)
@@ -188,7 +195,46 @@ def fill_pdf(
     else:
         with output.open("wb") as handle:
             writer.write(handle)
-    return {"output": str(output), "filled": sorted(set(filled))}
+
+
+def stamp_pdf(
+    source: Path | str,
+    output: Path | str,
+    overlays: list[dict[str, object]],
+    flatten: bool = False,
+) -> dict[str, object]:
+    """Place text at normalized page coordinates for a scanned PDF."""
+    from io import BytesIO
+
+    from reportlab.pdfgen import canvas as rl_canvas
+
+    reader = PdfReader(str(source))
+    writer = PdfWriter(clone_from=reader)
+    pages = list(writer.pages)
+    stamped: list[dict[str, object]] = []
+    for item in overlays:
+        text = str(item.get("text") or "").strip()
+        if not text:
+            continue
+        page_index = max(0, min(len(pages) - 1, int(item.get("page") or 0)))
+        page = pages[page_index]
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        x = max(0.0, min(1.0, float(item.get("x") or 0.0)))
+        y = max(0.0, min(1.0, float(item.get("y") or 0.0)))
+        size = max(6.0, min(48.0, float(item.get("size") or 11.0)))
+        buffer = BytesIO()
+        layer = rl_canvas.Canvas(buffer, pagesize=(width, height))
+        layer.setFillColorRGB(0, 0, 0)
+        layer.setFont("Helvetica", size)
+        layer.drawString(x * width, (1.0 - y) * height - size, text[:300])
+        layer.save()
+        buffer.seek(0)
+        page.merge_page(PdfReader(buffer).pages[0])
+        stamped.append({"page": page_index + 1, "text": text[:300], "x": round(x, 4), "y": round(y, 4)})
+    output = Path(output)
+    _write_output(writer, output, flatten)
+    return {"output": str(output), "stamped": stamped}
 
 
 def preview_pdf(path: Path | str, page: int = 0, scale: float = 1.5) -> Image.Image:

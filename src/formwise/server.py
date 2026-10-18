@@ -12,14 +12,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .config import output_root, profile_path
-from .fields import fill_pdf, inspect_pdf, preview_pdf
+from .fields import fill_pdf, inspect_pdf, preview_pdf, stamp_pdf
 from .profile import ProfileLocked, load_profile, value_for_field
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 
-app = FastAPI(title="formwise", version="0.1.5")
+app = FastAPI(title="formwise", version="0.1.6")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -27,6 +27,7 @@ class FillRequest(BaseModel):
     job: str
     values: dict[str, str]
     flatten: bool = False
+    overlay: list[dict[str, object]] = []
 
 
 @app.get("/")
@@ -92,7 +93,14 @@ def fill(request: FillRequest) -> JSONResponse:
         raise HTTPException(status_code=404, detail="job not found")
     target = folder / "filled.pdf"
     try:
-        result = fill_pdf(source, target, request.values, flatten=request.flatten)
+        if request.overlay:
+            if len(request.overlay) > 100:
+                raise ValueError("too many overlay fields (max 100)")
+            result = stamp_pdf(source, target, request.overlay, flatten=request.flatten)
+            filled = [str(item.get("text") or "") for item in result["stamped"]]
+        else:
+            result = fill_pdf(source, target, request.values, flatten=request.flatten)
+            filled = result["filled"]
         preview_pdf(target).save(folder / "preview.png")
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -100,7 +108,8 @@ def fill(request: FillRequest) -> JSONResponse:
         {
             "download": f"/files/{request.job}/filled.pdf",
             "preview": f"/files/{request.job}/preview.png?v=2",
-            "filled": result["filled"],
+            "filled": filled,
+            "stamped": bool(request.overlay),
         }
     )
 

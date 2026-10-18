@@ -66,3 +66,12 @@ input[type=text], select { min-height:40px; padding:0 10px; border:1px solid var
   .result-head { flex-direction:column; gap:2px; }
 }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+.preview-wrap { position: relative; cursor: crosshair; }
+.preview-wrap img { cursor: crosshair; }
+.preview-wrap:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 12px; }
+.marker { position: absolute; transform: translate(-2px, -50%); min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; pointer-events: none; }
+.overlay-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.overlay-row label { grid-column: 1 / -1; }
+.overlay-row input { min-height: 38px; }
+.overlay-row button { border: 0; background: transparent; color: var(--danger); font: inherit; font-size: .75rem; cursor: pointer; text-decoration: underline; }

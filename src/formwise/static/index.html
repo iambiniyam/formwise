@@ -36,8 +36,13 @@
           <h3>Values</h3>
           <p class="meta">Profile values are suggestions. Edit anything before filling.</p>
           <p id="profile-note" class="note" hidden></p>
-          <p id="scanned-note" class="note" hidden>This PDF has no AcroForm fields. It is probably a scanned form, which formwise does not fill yet.</p>
+          <p id="scanned-note" class="note" hidden>This PDF has no AcroForm fields. Click the preview to place values on a scanned form.</p>
           <div id="fields" class="fields"></div>
+          <div id="overlay-editor" hidden>
+            <p class="meta">No AcroForm fields. Click the preview to place a value, or add one at the center. Only the first page is supported right now.</p>
+            <div class="actions"><button id="add-field" class="btn ghost" type="button">Add field at center</button></div>
+            <div id="overlay-fields" class="fields"></div>
+          </div>
           <label class="check" for="flatten"><input id="flatten" type="checkbox"> Flatten the output (rasterize)</label>
           <div class="actions">
             <button id="fill" class="btn" type="button">Fill and download</button>
@@ -47,7 +52,11 @@
         </div>
         <div class="card preview-card">
           <h3>Preview</h3>
-          <img id="preview" alt="Filled PDF preview">
+          <p id="preview-help" class="meta">Review the filled result before downloading.</p>
+          <div id="preview-wrap" class="preview-wrap">
+            <img id="preview" alt="PDF page preview">
+            <div id="markers" aria-hidden="true"></div>
+          </div>
         </div>
       </div>
       <p class="note">The PDF stays in ~/.formwise/out until you delete it. Your profile is a local JSON file with 0600 permissions.</p>
