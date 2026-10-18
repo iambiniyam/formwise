@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
+from .batch import fill_folder
 from .fields import fill_pdf, inspect_pdf
 from .profile import SAMPLE, ProfileLocked, load_profile, save_profile, value_for_field
 
@@ -83,6 +84,32 @@ def fill(
     empty = [item.name for item in items if not values.get(item.name)]
     if empty:
         console.print(f"[yellow]left blank:[/yellow] {', '.join(empty)}")
+
+
+@app.command()
+def batch(
+    folder: Path = typer.Argument(..., exists=True, file_okay=False),
+    out: Path = typer.Option(Path("filled"), "--out", "-o"),
+    profile_path: Path = typer.Option(Path("profile.json"), "--profile", "-p"),
+    flatten: bool = typer.Option(False, "--flatten"),
+    passphrase: str | None = typer.Option(None, "--passphrase"),
+) -> None:
+    """Fill every PDF in a folder and write an audit log."""
+    try:
+        data = load_profile(profile_path, password=passphrase)
+    except ProfileLocked:
+        data = load_profile(
+            profile_path,
+            password=passphrase or typer.prompt("Profile passphrase", hide_input=True),
+        )
+    result = fill_folder(folder, out, data, flatten=flatten)
+    failed = [item for item in result["files"] if item.get("error")]
+    console.print(f"wrote {len(result['files']) - len(failed)} files to {out}")
+    console.print(f"audit: {result['audit']}")
+    if failed:
+        for item in failed:
+            console.print(f"[red]{item['input']}: {item['error']}[/red]")
+        raise typer.Exit(code=1)
 
 
 @app.command()

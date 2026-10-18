@@ -19,7 +19,7 @@ STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 
-app = FastAPI(title="formwise", version="0.1.1")
+app = FastAPI(title="formwise", version="0.1.2")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 

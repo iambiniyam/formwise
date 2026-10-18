@@ -9,7 +9,7 @@ Drop in a fillable PDF. formwise reads the fields, matches them to your profile,
 
 ![formwise web UI](docs/demo.png)
 
-Status: v0.1.1.
+Status: v0.1.2.
 
 ## Why
 
@@ -28,6 +28,7 @@ formwise keeps both local. It matches common field names, shows its work, and on
 - Lets you override every value before filling.
 - Optionally flattens the result by rasterizing the pages.
 - Runs as a CLI and a local web UI.
+- Fills a whole folder from the CLI and writes an audit log with field counts and no values.
 
 ## Quickstart
 
@@ -103,6 +104,7 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 - Uploaded PDFs and filled outputs stay in `~/.formwise/out` until you delete them.
 - The web UI binds to 127.0.0.1.
 - No telemetry and no accounts.
+- Batch audit logs record field counts and blank field names, never values.
 
 ## Limits
 
@@ -118,20 +120,20 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 pytest -q
 ```
 
-The suite covers profile matching, field inspection, text and checkbox filling, encryption, preview, and flattening. It has 5 tests.
+The suite covers profile matching, field inspection, text and checkbox filling, encryption, batch filling, audit safety, preview, and flattening. It has 6 tests.
 
 ## Packaging
 
 formwise is a Python package. It is not an npm package because the PDF runtime is Python.
 
 - PyPI: `pip install formwise`
-- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.1/formwise-0.1.1-py3-none-any.whl`
+- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.2/formwise-0.1.2-py3-none-any.whl`
 - The release workflow uses PyPI Trusted Publishing. A maintainer configures the PyPI project and the `pypi` environment once, then sets the repository variable `PUBLISH_PYPI=true`. No API token is stored in the repository. Until that setup exists, install the wheel attached to the GitHub release.
 
 ## Roadmap
 
 - scanned PDF field detection with OCR
-- multi-page and multi-file batches
+- multi-page form layouts
 - signature fields with a clear review step
 - XFA form support
 - an audit log of what was filled

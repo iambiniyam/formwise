@@ -51,3 +51,11 @@ formwise fill examples/sample-form.pdf --profile examples/profile.json -o /tmp/f
 - Loading with the correct passphrase returned the values.
 - Loading with a wrong passphrase was rejected.
 - Filling the sample form from the encrypted profile succeeded with 10 fields.
+
+
+## Batch check
+
+- Two generated forms were filled from one profile.
+- Both outputs were written and both reported two filled fields.
+- The audit file was mode 600 and contained field counts and profile keys only.
+- The value `Jane` and the email address were not present in the audit file.
