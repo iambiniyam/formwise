@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "formwise"
-version = "0.1.6"
+version = "0.1.7"
 description = "Fill PDF forms locally from a private profile."
 readme = "README.md"
 license = { text = "MIT" }

@@ -54,3 +54,36 @@ def test_scanned_overlay_fill(tmp_path, monkeypatch):
     target = tmp_path / "filled.pdf"
     target.write_bytes(client.get(payload["download"]).content)
     assert "Jane Doe" in pdfium.PdfDocument(str(target))[0].get_textpage().get_text_range()
+
+
+def test_multipage_previews_and_page_placement(tmp_path, monkeypatch):
+    import pypdfium2 as pdfium
+
+    monkeypatch.setenv("FORMWISE_HOME", str(tmp_path / "home"))
+    source = tmp_path / "two.pdf"
+    page = canvas.Canvas(str(source), pagesize=(612, 792))
+    for text in ("Page one", "Page two"):
+        page.drawString(72, 720, text)
+        page.showPage()
+    page.save()
+    client = TestClient(app)
+    inspected = client.post(
+        "/api/inspect",
+        files={"file": ("two.pdf", source.read_bytes(), "application/pdf")},
+    )
+    payload = inspected.json()
+    assert payload["pages"] == 2
+    assert len(payload["previews"]) == 2
+    filled = client.post(
+        "/api/fill",
+        json={
+            "job": payload["job"],
+            "values": {},
+            "overlay": [{"page": 1, "x": 0.2, "y": 0.3, "text": "Second page value"}],
+        },
+    )
+    assert filled.status_code == 200
+    target = tmp_path / "filled.pdf"
+    target.write_bytes(client.get(filled.json()["download"]).content)
+    text = pdfium.PdfDocument(str(target))[1].get_textpage().get_text_range()
+    assert "Second page value" in text

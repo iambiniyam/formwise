@@ -19,9 +19,11 @@ const overlayFields = document.getElementById("overlay-fields");
 const markers = document.getElementById("markers");
 const addField = document.getElementById("add-field");
 const previewWrap = document.getElementById("preview-wrap");
+const pageNav = document.getElementById("page-nav");
+const pageSelect = document.getElementById("page-select");
 
 const MAX_BYTES = 25 * 1024 * 1024;
-const state = { file: null, job: null, fields: [], scanned: false, overlay: [] };
+const state = { file: null, job: null, fields: [], scanned: false, overlay: [], previews: [], page: 0 };
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -81,18 +83,29 @@ function fieldControl(field, index) {
 }
 
 function renderOverlay() {
-  markers.innerHTML = state.overlay.map((item, index) =>
-    `<span class="marker" style="left:${item.x * 100}%;top:${item.y * 100}%">${index + 1}</span>`
-  ).join("");
+  markers.innerHTML = state.overlay
+    .filter((item) => item.page === state.page)
+    .map((item) => {
+      const index = state.overlay.indexOf(item);
+      return `<span class="marker" style="left:${item.x * 100}%;top:${item.y * 100}%">${index + 1}</span>`;
+    })
+    .join("");
   overlayFields.innerHTML = state.overlay.map((item, index) => `<div class="field overlay-row">
-    <label for="overlay-${index}">Value ${index + 1} <span class="type">page 1</span></label>
+    <label for="overlay-${index}">Value ${index + 1} <span class="type">page ${item.page + 1}</span></label>
     <input id="overlay-${index}" type="text" data-overlay="${index}" value="${escapeHtml(item.text)}" placeholder="Text to place">
     <button type="button" data-remove="${index}">Remove</button>
   </div>`).join("");
 }
 
+function setPage(index) {
+  state.page = Math.max(0, Math.min(state.previews.length - 1, index));
+  if (state.previews[state.page]) preview.src = state.previews[state.page];
+  pageSelect.value = String(state.page);
+  renderOverlay();
+}
+
 function addOverlay(x, y) {
-  state.overlay.push({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)), text: "" });
+  state.overlay.push({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)), page: state.page, text: "" });
   renderOverlay();
   const input = overlayFields.querySelector(`[data-overlay="${state.overlay.length - 1}"]`);
   if (input) input.focus();
@@ -124,13 +137,17 @@ function render(data) {
       )
       .join("");
   }
-  preview.src = data.preview;
-  renderOverlay();
+  state.previews = data.previews || [data.preview];
+  state.page = 0;
+  pageNav.hidden = state.previews.length < 2;
+  pageSelect.innerHTML = state.previews.map((url, index) => `<option value="${index}">Page ${index + 1}</option>`).join("");
+  setPage(0);
   download.hidden = true;
   setFillStatus("");
   resultTitle.focus();
 }
 
+pageSelect.addEventListener("change", () => setPage(Number(pageSelect.value)));
 preview.addEventListener("click", (event) => {
   if (!state.scanned) return;
   const rect = preview.getBoundingClientRect();
@@ -185,7 +202,7 @@ fillButton.addEventListener("click", async () => {
   }
   const overlay = state.scanned
     ? state.overlay
-      .map((item) => ({ page: 0, x: item.x, y: item.y, text: item.text.trim() }))
+      .map((item) => ({ page: item.page, x: item.x, y: item.y, text: item.text.trim() }))
       .filter((item) => item.text)
     : [];
   if (state.scanned && !overlay.length) {
@@ -206,7 +223,10 @@ fillButton.addEventListener("click", async () => {
       throw new Error(payload.detail || `Server returned ${response.status}`);
     }
     const data = await response.json();
-    preview.src = data.preview;
+    state.previews = data.previews || [data.preview];
+    pageNav.hidden = state.previews.length < 2;
+    pageSelect.innerHTML = state.previews.map((url, index) => `<option value="${index}">Page ${index + 1}</option>`).join("");
+    setPage(Math.min(state.page, state.previews.length - 1));
     download.href = data.download;
     download.hidden = false;
     setFillStatus(data.stamped ? `Placed ${data.filled.length} text item(s).` : `Filled ${data.filled.length} fields.`);

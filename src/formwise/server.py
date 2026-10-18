@@ -12,14 +12,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .config import output_root, profile_path
-from .fields import fill_pdf, inspect_pdf, preview_pdf, stamp_pdf
+from .fields import fill_pdf, inspect_pdf, page_count, preview_pdf, stamp_pdf
 from .profile import ProfileLocked, load_profile, value_for_field
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
+MAX_PREVIEW_PAGES = 10
 
-app = FastAPI(title="formwise", version="0.1.6")
+app = FastAPI(title="formwise", version="0.1.7")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -60,7 +61,12 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
     if pages > MAX_PAGES:
         shutil.rmtree(folder, ignore_errors=True)
         raise HTTPException(status_code=413, detail="PDF has too many pages (max 100)")
-    preview_pdf(source).save(folder / "preview.png")
+    previews: list[str] = []
+    for page_index in range(min(pages, MAX_PREVIEW_PAGES)):
+        image = preview_pdf(source, page=page_index)
+        name = f"preview-{page_index}.png"
+        image.save(folder / name)
+        previews.append(f"/files/{job}/{name}")
     locked = False
     try:
         profile = load_profile(profile_path())
@@ -80,7 +86,9 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
             "scanned": not items,
             "profile_keys": sorted(profile.keys()),
             "profile_locked": locked,
-            "preview": f"/files/{job}/preview.png",
+            "preview": previews[0],
+            "previews": previews,
+            "preview_size": list(image.size),
         }
     )
 
@@ -101,13 +109,19 @@ def fill(request: FillRequest) -> JSONResponse:
         else:
             result = fill_pdf(source, target, request.values, flatten=request.flatten)
             filled = result["filled"]
-        preview_pdf(target).save(folder / "preview.png")
+        filled_previews = []
+        for page in range(min(page_count(target), MAX_PREVIEW_PAGES)):
+            image = preview_pdf(target, page=page)
+            name = f"filled-{page}.png"
+            image.save(folder / name)
+            filled_previews.append(f"/files/{request.job}/{name}")
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return JSONResponse(
         {
             "download": f"/files/{request.job}/filled.pdf",
-            "preview": f"/files/{request.job}/preview.png?v=2",
+            "preview": filled_previews[0],
+            "previews": filled_previews,
             "filled": filled,
             "stamped": bool(request.overlay),
         }
