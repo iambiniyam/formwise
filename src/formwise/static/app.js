@@ -18,6 +18,7 @@ const overlayEditor = document.getElementById("overlay-editor");
 const overlayFields = document.getElementById("overlay-fields");
 const markers = document.getElementById("markers");
 const addField = document.getElementById("add-field");
+const detectFields = document.getElementById("detect-fields");
 const previewWrap = document.getElementById("preview-wrap");
 const pageNav = document.getElementById("page-nav");
 const pageSelect = document.getElementById("page-select");
@@ -91,7 +92,7 @@ function renderOverlay() {
     })
     .join("");
   overlayFields.innerHTML = state.overlay.map((item, index) => `<div class="field overlay-row">
-    <label for="overlay-${index}">Value ${index + 1} <span class="type">page ${item.page + 1}</span></label>
+    <label for="overlay-${index}">${escapeHtml(item.label || `Value ${index + 1}`)} <span class="type">page ${item.page + 1}</span></label>
     <input id="overlay-${index}" type="text" data-overlay="${index}" value="${escapeHtml(item.text)}" placeholder="Text to place">
     <button type="button" data-remove="${index}">Remove</button>
   </div>`).join("");
@@ -155,6 +156,31 @@ preview.addEventListener("click", (event) => {
   addOverlay((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
 });
 addField.addEventListener("click", () => addOverlay(0.5, 0.5));
+detectFields.addEventListener("click", async () => {
+  if (!state.job) return;
+  detectFields.disabled = true;
+  detectFields.textContent = "Detecting...";
+  setFillStatus("Looking for labels on the first page.");
+  try {
+    const response = await fetch("/api/detect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job: state.job }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.detail || `Server returned ${response.status}`);
+    state.overlay = (payload.fields || []).map((field) => ({
+      x: field.x, y: field.y, page: field.page || 0, label: field.label, text: "",
+    }));
+    setPage(0);
+    setFillStatus(state.overlay.length ? `Found ${state.overlay.length} labels. Enter values.` : "No labels found. Place fields manually.", !state.overlay.length);
+  } catch (error) {
+    setFillStatus(error.message, true);
+  } finally {
+    detectFields.disabled = false;
+    detectFields.textContent = "Detect fields";
+  }
+});
 overlayFields.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-remove]");
   if (!button) return;

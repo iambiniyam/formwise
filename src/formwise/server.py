@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .config import output_root, profile_path
+from .detect import DetectionUnavailable, detect_overlay_fields
 from .fields import fill_pdf, inspect_pdf, page_count, preview_pdf, stamp_pdf
 from .profile import ProfileLocked, load_profile, value_for_field
 
@@ -20,8 +21,12 @@ MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 MAX_PREVIEW_PAGES = 10
 
-app = FastAPI(title="formwise", version="0.1.7")
+app = FastAPI(title="formwise", version="0.1.8")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+class DetectRequest(BaseModel):
+    job: str
 
 
 class FillRequest(BaseModel):
@@ -91,6 +96,21 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
             "preview_size": list(image.size),
         }
     )
+
+
+@app.post("/api/detect")
+def detect(request: DetectRequest) -> JSONResponse:
+    folder = (output_root() / Path(request.job).name).resolve()
+    source = folder / "source.pdf"
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="job not found")
+    try:
+        candidates = detect_overlay_fields(source)
+    except DetectionUnavailable as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"field detection failed: {exc}") from exc
+    return JSONResponse({"fields": [candidate.as_dict() for candidate in candidates]})
 
 
 @app.post("/api/fill")

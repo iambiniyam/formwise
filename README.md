@@ -9,7 +9,7 @@ Drop in a fillable PDF. formwise reads the fields, matches them to your profile,
 
 ![formwise web UI](docs/demo.png)
 
-Status: v0.1.7.
+Status: v0.1.8.
 
 ## Why
 
@@ -30,7 +30,8 @@ formwise keeps both local. It matches common field names, shows its work, and on
 - Runs as a CLI and a local web UI.
 - Fills a whole folder from the CLI and writes an audit log with field counts and no values.
 - Flags scanned PDFs with no AcroForm fields.
-- Lets you place text values directly on the page preview of a scanned PDF, with page navigation.
+- Proposes fields from OCR labels on the first page of a scanned PDF.
+- Lets you place text values directly on the page preview, with page navigation.
 
 ## Quickstart
 
@@ -112,7 +113,7 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 
 - Digital and scanned forms are not supported yet. Only PDFs with AcroForm fields.
 - A wrong match is possible. Review every field.
-- Scanned-form placement is manual. Preview generation covers up to 10 pages.
+- Scanned-field detection is heuristic and limited to the first page. Review every proposal and place additional values manually. Preview generation covers up to 10 pages.
 - Flattening rasterizes the PDF, so text is no longer selectable.
 - Without `--encrypt`, the profile is plain JSON on disk. Encrypt it or keep it on an encrypted disk.
 - The current UI handles one PDF at a time.
@@ -130,7 +131,7 @@ The suite covers profile matching, field inspection, text and checkbox filling, 
 formwise is a Python package. It is not an npm package because the PDF runtime is Python.
 
 - PyPI: `pip install formwise`
-- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.7/formwise-0.1.7-py3-none-any.whl`
+- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.8/formwise-0.1.8-py3-none-any.whl`
 - The release workflow uses PyPI Trusted Publishing. A maintainer configures the PyPI project and the `pypi` environment once, then sets the repository variable `PUBLISH_PYPI=true`. No API token is stored in the repository. Until that setup exists, install the wheel attached to the GitHub release.
 
 ## Roadmap

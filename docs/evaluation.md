@@ -59,3 +59,9 @@ formwise fill examples/sample-form.pdf --profile examples/profile.json -o /tmp/f
 - Both outputs were written and both reported two filled fields.
 - The audit file was mode 600 and contained field counts and profile keys only.
 - The value `Jane` and the email address were not present in the audit file.
+
+## Scanned-field detection
+
+A generated scanned-style PDF with `Name:`, `Email:`, `Phone:`, and `Address:` labels produced four proposals through RapidOCR. Each proposal was placed below the label, and one filled value was stamped into the downloaded PDF.
+
+Detection is a proposal, not a guarantee. Unusual labels, handwriting, and rotated pages can be missed. Only the first page is detected automatically; additional pages use manual placement.
