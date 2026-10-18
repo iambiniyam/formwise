@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from .config import output_root, profile_path
 from .detect import DetectionUnavailable, detect_overlay_fields
-from .fields import fill_pdf, inspect_pdf, page_count, preview_pdf, stamp_pdf
+from .fields import fill_pdf, inspect_pdf, page_count, pdf_flags, preview_pdf, stamp_pdf
 from .profile import ProfileLocked, load_profile, value_for_field
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -21,7 +21,7 @@ MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 MAX_PREVIEW_PAGES = 10
 
-app = FastAPI(title="formwise", version="0.1.10")
+app = FastAPI(title="formwise", version="0.1.11")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -60,6 +60,7 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
     source.write_bytes(payload)
     try:
         fields, pages = inspect_pdf(source)
+        flags = pdf_flags(source)
     except Exception as exc:
         shutil.rmtree(folder, ignore_errors=True)
         raise HTTPException(status_code=400, detail="not a readable PDF form") from exc
@@ -89,6 +90,8 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
             "pages": pages,
             "fields": items,
             "scanned": not items,
+            "xfa": flags["xfa"],
+            "signature_fields": flags["signatures"],
             "profile_keys": sorted(profile.keys()),
             "profile_locked": locked,
             "preview": previews[0],
@@ -122,6 +125,8 @@ def fill(request: FillRequest) -> JSONResponse:
     if not source.exists():
         raise HTTPException(status_code=404, detail="job not found")
     target = folder / "filled.pdf"
+    if pdf_flags(source)["xfa"]:
+        raise HTTPException(status_code=400, detail="XFA forms are not supported; use an AcroForm PDF")
     try:
         if request.overlay:
             if len(request.overlay) > 100:

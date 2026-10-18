@@ -11,7 +11,7 @@ from rich.table import Table
 from . import __version__
 from .audit import load_audit, totals
 from .batch import fill_folder
-from .fields import fill_pdf, inspect_pdf
+from .fields import fill_pdf, inspect_pdf, pdf_flags
 from .profile import SAMPLE, ProfileLocked, load_profile, save_profile, value_for_field
 
 app = typer.Typer(help="Fill PDF forms locally from a private profile.", no_args_is_help=True)
@@ -46,7 +46,12 @@ def profile(
 def fields(pdf: Path = typer.Argument(..., exists=True)) -> None:
     """List the AcroForm fields in a PDF."""
     items, pages = inspect_pdf(pdf)
+    flags = pdf_flags(pdf)
     console.print(f"{len(items)} fields across {pages} page(s)")
+    if flags["xfa"]:
+        console.print("[yellow]XFA form: filling is not supported.[/yellow]")
+    if flags["signatures"]:
+        console.print(f"[yellow]signature fields (not filled): {', '.join(flags['signatures'])}[/yellow]")
     if not items:
         console.print("[yellow]No AcroForm fields found. This is likely a scanned form; fill needs an AcroForm.[/yellow]")
     table = Table("Field", "Type", "Value")

@@ -9,7 +9,7 @@ Drop in a fillable PDF. formwise reads the fields, matches them to your profile,
 
 ![formwise web UI](docs/demo.png)
 
-Status: v0.1.10.
+Status: v0.1.11.
 
 ## Why
 
@@ -31,6 +31,7 @@ formwise keeps both local. It matches common field names, shows its work, and on
 - Fills a whole folder from the CLI and writes an audit log with field counts and no values.
 - Flags scanned PDFs with no AcroForm fields.
 - Proposes fields from OCR labels across up to 10 pages of a scanned PDF, reusing one OCR engine per process.
+- Refuses XFA forms and skips signature fields instead of writing unsafe values.
 - Lets you place text values directly on the page preview, with page navigation.
 
 ## Quickstart
@@ -112,6 +113,8 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 ## Limits
 
 - Digital and scanned forms are not supported yet. Only PDFs with AcroForm fields.
+- XFA forms are detected and refused; use an AcroForm PDF.
+- Signature fields are listed but never filled. A review/signature workflow is still on the roadmap.
 - A wrong match is possible. Review every field.
 - Scanned-field detection is heuristic and limited to the first 10 preview pages. Review every proposal and place additional values manually. Preview generation covers up to 10 pages.
 - Flattening rasterizes the PDF, so text is no longer selectable.
@@ -131,7 +134,7 @@ The suite covers profile matching, field inspection, text and checkbox filling, 
 formwise is a Python package. It is not an npm package because the PDF runtime is Python.
 
 - PyPI: `pip install formwise`
-- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.10/formwise-0.1.10-py3-none-any.whl`
+- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.11/formwise-0.1.11-py3-none-any.whl`
 - The release workflow uses PyPI Trusted Publishing. A maintainer configures the PyPI project and the `pypi` environment once, then sets the repository variable `PUBLISH_PYPI=true`. No API token is stored in the repository. Until that setup exists, install the wheel attached to the GitHub release.
 
 ## Roadmap

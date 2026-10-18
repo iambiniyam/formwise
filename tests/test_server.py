@@ -87,3 +87,32 @@ def test_multipage_previews_and_page_placement(tmp_path, monkeypatch):
     target.write_bytes(client.get(filled.json()["download"]).content)
     text = pdfium.PdfDocument(str(target))[1].get_textpage().get_text_range()
     assert "Second page value" in text
+
+
+def test_xfa_fill_is_rejected(tmp_path, monkeypatch):
+    from pypdf import PdfWriter
+    from pypdf.generic import ArrayObject, DictionaryObject, NameObject
+
+    monkeypatch.setenv("FORMWISE_HOME", str(tmp_path / "home"))
+    writer = PdfWriter()
+    writer.add_blank_page(width=200, height=200)
+    writer._root_object[NameObject("/AcroForm")] = DictionaryObject(
+        {
+            NameObject("/Fields"): ArrayObject([]),
+            NameObject("/XFA"): ArrayObject([]),
+        }
+    )
+    source = tmp_path / "xfa.pdf"
+    with source.open("wb") as handle:
+        writer.write(handle)
+    client = TestClient(app)
+    inspected = client.post(
+        "/api/inspect",
+        files={"file": ("xfa.pdf", source.read_bytes(), "application/pdf")},
+    )
+    assert inspected.status_code == 200
+    payload = inspected.json()
+    assert payload["xfa"] is True
+    filled = client.post("/api/fill", json={"job": payload["job"], "values": {}})
+    assert filled.status_code == 400
+    assert "XFA" in filled.json()["detail"]

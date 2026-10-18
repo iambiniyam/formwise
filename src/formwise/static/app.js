@@ -8,6 +8,7 @@ const resultTitle = document.getElementById("result-title");
 const summary = document.getElementById("summary");
 const profileNote = document.getElementById("profile-note");
 const scannedNote = document.getElementById("scanned-note");
+const formFlags = document.getElementById("form-flags");
 const fieldsBox = document.getElementById("fields");
 const preview = document.getElementById("preview");
 const flatten = document.getElementById("flatten");
@@ -24,7 +25,7 @@ const pageNav = document.getElementById("page-nav");
 const pageSelect = document.getElementById("page-select");
 
 const MAX_BYTES = 25 * 1024 * 1024;
-const state = { file: null, job: null, fields: [], scanned: false, overlay: [], previews: [], page: 0 };
+const state = { file: null, job: null, fields: [], scanned: false, xfa: false, overlay: [], previews: [], page: 0 };
 
 function escapeHtml(value) {
   return String(value == null ? "" : value)
@@ -116,6 +117,7 @@ function render(data) {
   state.job = data.job;
   state.fields = data.fields;
   state.scanned = Boolean(data.scanned);
+  state.xfa = Boolean(data.xfa);
   state.overlay = [];
   result.hidden = false;
   profileNote.hidden = !data.profile_locked;
@@ -123,6 +125,13 @@ function render(data) {
     ? "The local profile is encrypted. Values are blank until you fill them manually."
     : "";
   scannedNote.hidden = !data.scanned;
+  const flags = [];
+  if (data.xfa) flags.push("XFA forms are not supported. Use an AcroForm PDF.");
+  if (data.signature_fields && data.signature_fields.length) {
+    flags.push(`Signature fields are left unchanged: ${data.signature_fields.join(", ")}.`);
+  }
+  formFlags.hidden = flags.length === 0;
+  formFlags.textContent = flags.join(" ");
   summary.textContent = state.scanned
     ? `No AcroForm fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`
     : `${data.fields.length} fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`;
@@ -235,6 +244,7 @@ fillButton.addEventListener("click", async () => {
     setFillStatus("Click the preview to place at least one value.", true);
     return;
   }
+  if (state.xfa) { setFillStatus("XFA forms are not supported.", true); return; }
   fillButton.disabled = true;
   fillButton.textContent = "Filling...";
   setFillStatus(state.scanned ? "Placing the text on the page." : "Writing the values into the PDF.");

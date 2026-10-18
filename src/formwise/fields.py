@@ -111,6 +111,20 @@ def _set_text_appearance(annotation, value: str) -> None:
     annotation[NameObject("/AP")] = DictionaryObject({NameObject("/N"): stream})
 
 
+def pdf_flags(path: Path | str) -> dict[str, object]:
+    """Return form capabilities that affect safe filling."""
+    reader = PdfReader(str(path))
+    root = reader.trailer.get("/Root", {})
+    acro = root.get("/AcroForm", {}) if root else {}
+    try:
+        xfa = "/XFA" in acro
+    except TypeError:
+        xfa = False
+    fields = reader.get_fields() or {}
+    signatures = [name for name, field in fields.items() if field.get("/FT") == "/Sig"]
+    return {"xfa": xfa, "signatures": signatures}
+
+
 def fill_pdf(
     source: Path | str,
     output: Path | str,
@@ -136,6 +150,8 @@ def fill_pdf(
                 remaining.append(reference)
                 continue
             name = _widget_name(annotation)
+            if annotation.get("/FT") == "/Sig":
+                continue
             if name not in values or values[name] == "":
                 continue
             value = values[name]
