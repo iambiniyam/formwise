@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>formwise: fill PDF forms locally</title>
+  <link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="masthead shell">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 13h7M9 17h5"></path></svg></span>
+      <div><a class="brand-name" href="/">formwise</a><p class="brand-tag">Fill the form, not someone else's server.</p></div>
+    </div>
+    <p class="local-badge"><span class="local-dot" aria-hidden="true"></span> Local only</p>
+  </header>
+
+  <main id="main" class="shell">
+    <section class="panel" aria-labelledby="page-title">
+      <h1 id="page-title" class="sr-only">Fill a PDF form</h1>
+      <label class="drop" id="drop" for="file">
+        <span class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 16v3h14v-3"></path></svg></span>
+        <strong>Drop a fillable PDF</strong>
+        <span class="drop-help">or click to choose. AcroForm fields only. Up to 25 MB.</span>
+      </label>
+      <input id="file" type="file" accept="application/pdf" hidden>
+      <p id="selected" class="selected" hidden></p>
+      <div class="controls"><button id="inspect" class="btn" type="button">Read form</button><p id="status" class="status" role="status" aria-live="polite"></p></div>
+    </section>
+
+    <section id="result" class="result" hidden aria-labelledby="result-title">
+      <div class="result-head"><h2 id="result-title" tabindex="-1">Review the fields</h2><p id="summary" class="meta"></p></div>
+      <div class="layout">
+        <div class="card fields-card">
+          <h3>Values</h3>
+          <p class="meta">Profile values are suggestions. Edit anything before filling.</p>
+          <div id="fields" class="fields"></div>
+          <label class="check"><input id="flatten" type="checkbox"> Flatten the output (rasterize)</label>
+          <div class="actions">
+            <button id="fill" class="btn" type="button">Fill and download</button>
+            <a id="download" class="btn ghost" href="#" hidden>Download filled PDF</a>
+          </div>
+          <p id="fill-status" class="status" role="status" aria-live="polite"></p>
+        </div>
+        <div class="card preview-card">
+          <h3>Preview</h3>
+          <img id="preview" alt="Filled PDF preview">
+        </div>
+      </div>
+      <p class="note">The PDF stays in ~/.formwise/out until you delete it. Your profile is a local JSON file with 0600 permissions.</p>
+    </section>
+  </main>
+
+  <footer class="footer shell"><p><strong>Local only.</strong> Forms and profile values are not uploaded. <a href="https://github.com/iambiniyam/formwise">Source on GitHub</a></p></footer>
+</body>
+</html>

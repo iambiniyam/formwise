@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "formwise"
+version = "0.1.0"
+description = "Fill PDF forms locally from a private profile."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Biniyam Gashaw" }]
+keywords = ["pdf", "forms", "privacy", "local-first", "documents"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Office/Business",
+]
+dependencies = [
+  "fastapi>=0.115",
+  "pillow>=10.0",
+  "pypdf>=5.0",
+  "pypdfium2>=4.30",
+  "reportlab>=4.2",
+  "python-multipart>=0.0.9",
+  "typer>=0.12",
+  "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27", "pytest>=8.3", "reportlab>=4.2", "ruff>=0.6"]
+
+[project.scripts]
+formwise = "formwise.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/iambiniyam/formwise"
+Issues = "https://github.com/iambiniyam/formwise/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/formwise"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = ["B008"]

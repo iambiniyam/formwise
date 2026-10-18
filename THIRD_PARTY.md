@@ -1,0 +1,20 @@
+# Third-party notices
+
+## pypdf
+
+- License: BSD-3-Clause
+- Used for AcroForm field discovery and filling.
+
+## pypdfium2
+
+- License: Apache-2.0 / BSD-3-Clause (PDFium)
+- Used for preview rendering and optional flattening.
+
+## ReportLab
+
+- License: BSD-3-Clause
+- Development dependency used to generate the sample form and tests. Not required at runtime.
+
+## Other dependencies
+
+FastAPI, Uvicorn, Pillow, Typer, python-multipart. See `pyproject.toml`.
