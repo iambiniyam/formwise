@@ -6,8 +6,6 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
 from .fields import preview_pdf
 
 
@@ -81,6 +79,7 @@ def candidates_from_lines(lines, width: int, height: int, page: int = 0) -> list
 
 def detect_overlay_fields(source: Path | str, page: int = 0) -> list[Candidate]:
     try:
+        import numpy as np
         from rapidocr_onnxruntime import RapidOCR
     except ImportError as exc:
         raise DetectionUnavailable(
