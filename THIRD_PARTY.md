@@ -20,6 +20,11 @@
 - License: Apache-2.0 / BSD-3-Clause
 - Used only for the optional encrypted profile.
 
+## axe-core
+
+- License: MPL-2.0
+- A minified copy is vendored under `tests/axe.min.js` for the browser accessibility test only.
+
 ## Other dependencies
 
 FastAPI, Uvicorn, Pillow, Typer, python-multipart. See `pyproject.toml`.
