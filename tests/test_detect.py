@@ -12,3 +12,8 @@ def test_candidates_from_labels():
     found = candidates_from_lines(lines, 600, 800)
     assert [item.label for item in found] == ["Name", "Email", "Total Amount", "Invoice"]
     assert all(0 <= item.x <= 1 and 0 <= item.y <= 1 for item in found)
+
+
+def test_candidates_keep_page_numbers():
+    lines = [([(10, 10), (80, 10), (80, 40), (10, 40)], "Name:", 0.9)]
+    assert candidates_from_lines(lines, 600, 800, page=1)[0].page == 1

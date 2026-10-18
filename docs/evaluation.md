@@ -64,4 +64,4 @@ formwise fill examples/sample-form.pdf --profile examples/profile.json -o /tmp/f
 
 A generated scanned-style PDF with `Name:`, `Email:`, `Phone:`, and `Address:` labels produced four proposals through RapidOCR. Each proposal was placed below the label, and one filled value was stamped into the downloaded PDF.
 
-Detection is a proposal, not a guarantee. Unusual labels, handwriting, and rotated pages can be missed. Only the first page is detected automatically; additional pages use manual placement.
+Detection is a proposal, not a guarantee. Unusual labels, handwriting, and rotated pages can be missed. A two-page test with `Name:` on page one and `Email:` on page two produced two proposals, one per page. Detection covers up to 10 preview pages.

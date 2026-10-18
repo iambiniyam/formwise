@@ -21,7 +21,7 @@ MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 MAX_PREVIEW_PAGES = 10
 
-app = FastAPI(title="formwise", version="0.1.8")
+app = FastAPI(title="formwise", version="0.1.9")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -105,7 +105,9 @@ def detect(request: DetectRequest) -> JSONResponse:
     if not source.exists():
         raise HTTPException(status_code=404, detail="job not found")
     try:
-        candidates = detect_overlay_fields(source)
+        candidates = []
+        for page in range(min(page_count(source), MAX_PREVIEW_PAGES)):
+            candidates.extend(detect_overlay_fields(source, page=page))
     except DetectionUnavailable as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

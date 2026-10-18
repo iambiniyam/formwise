@@ -173,7 +173,7 @@ detectFields.addEventListener("click", async () => {
       x: field.x, y: field.y, page: field.page || 0, label: field.label, text: "",
     }));
     setPage(0);
-    setFillStatus(state.overlay.length ? `Found ${state.overlay.length} labels. Enter values.` : "No labels found. Place fields manually.", !state.overlay.length);
+    setFillStatus(state.overlay.length ? `Found ${state.overlay.length} labels across pages. Enter values.` : "No labels found. Place fields manually.", !state.overlay.length);
   } catch (error) {
     setFillStatus(error.message, true);
   } finally {
