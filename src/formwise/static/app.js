@@ -7,6 +7,7 @@ const result = document.getElementById("result");
 const resultTitle = document.getElementById("result-title");
 const summary = document.getElementById("summary");
 const profileNote = document.getElementById("profile-note");
+const scannedNote = document.getElementById("scanned-note");
 const fieldsBox = document.getElementById("fields");
 const preview = document.getElementById("preview");
 const flatten = document.getElementById("flatten");
@@ -82,6 +83,7 @@ function render(data) {
   profileNote.textContent = data.profile_locked
     ? "The local profile is encrypted. Values are blank until you fill them manually."
     : "";
+  scannedNote.hidden = !data.scanned;
   summary.textContent = `${data.fields.length} fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`;
   fieldsBox.innerHTML = data.fields
     .map(

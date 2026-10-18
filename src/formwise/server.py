@@ -19,7 +19,7 @@ STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 
-app = FastAPI(title="formwise", version="0.1.4")
+app = FastAPI(title="formwise", version="0.1.5")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -76,6 +76,7 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
             "job": job,
             "pages": pages,
             "fields": items,
+            "scanned": not items,
             "profile_keys": sorted(profile.keys()),
             "profile_locked": locked,
             "preview": f"/files/{job}/preview.png",

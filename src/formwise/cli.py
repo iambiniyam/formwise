@@ -47,6 +47,8 @@ def fields(pdf: Path = typer.Argument(..., exists=True)) -> None:
     """List the AcroForm fields in a PDF."""
     items, pages = inspect_pdf(pdf)
     console.print(f"{len(items)} fields across {pages} page(s)")
+    if not items:
+        console.print("[yellow]No AcroForm fields found. This is likely a scanned form; fill needs an AcroForm.[/yellow]")
     table = Table("Field", "Type", "Value")
     for item in items:
         table.add_row(item.name, item.field_type, item.value)

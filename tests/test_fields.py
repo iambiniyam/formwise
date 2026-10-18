@@ -39,3 +39,13 @@ def test_flatten_creates_pdf(tmp_path):
     fill_pdf(source, target, {"first_name": "Jane"}, flatten=True)
     assert target.exists()
     assert page_count(target) == 1
+
+
+def test_scanned_pdf_has_no_fields(tmp_path):
+    page = canvas.Canvas(str(tmp_path / "scan.pdf"), pagesize=(612, 792))
+    page.drawString(72, 720, "A scanned-looking form")
+    page.showPage()
+    page.save()
+    fields, pages = inspect_pdf(tmp_path / "scan.pdf")
+    assert fields == []
+    assert pages == 1
