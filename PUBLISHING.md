@@ -12,5 +12,5 @@ The GitHub release already contains a wheel. Registry publishing is a one-time a
 ## Direct install
 
 ```bash
-pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.0/formwise-0.1.0-py3-none-any.whl
+pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.1/formwise-0.1.1-py3-none-any.whl
 ```

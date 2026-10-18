@@ -6,6 +6,7 @@ const statusLine = document.getElementById("status");
 const result = document.getElementById("result");
 const resultTitle = document.getElementById("result-title");
 const summary = document.getElementById("summary");
+const profileNote = document.getElementById("profile-note");
 const fieldsBox = document.getElementById("fields");
 const preview = document.getElementById("preview");
 const flatten = document.getElementById("flatten");
@@ -77,6 +78,10 @@ function render(data) {
   state.job = data.job;
   state.fields = data.fields;
   result.hidden = false;
+  profileNote.hidden = !data.profile_locked;
+  profileNote.textContent = data.profile_locked
+    ? "The local profile is encrypted. Values are blank until you fill them manually."
+    : "";
   summary.textContent = `${data.fields.length} fields · ${data.pages} page${data.pages === 1 ? "" : "s"}`;
   fieldsBox.innerHTML = data.fields
     .map(

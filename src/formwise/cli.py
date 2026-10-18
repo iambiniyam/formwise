@@ -8,18 +8,36 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from . import __version__
 from .fields import fill_pdf, inspect_pdf
-from .profile import SAMPLE, load_profile, save_profile, value_for_field
+from .profile import SAMPLE, ProfileLocked, load_profile, save_profile, value_for_field
 
 app = typer.Typer(help="Fill PDF forms locally from a private profile.", no_args_is_help=True)
 console = Console()
 
 
+@app.callback(invoke_without_command=True)
+def _root(
+    version: bool = typer.Option(False, "--version", is_eager=True, help="Show the version and exit."),
+) -> None:
+    if version:
+        console.print(__version__)
+        raise typer.Exit()
+
+
+
 @app.command()
-def profile(out: Path = typer.Option(Path("profile.json"), "--out", "-o")) -> None:
+def profile(
+    out: Path = typer.Option(Path("profile.json"), "--out", "-o"),
+    encrypt: bool = typer.Option(False, "--encrypt", help="Require a passphrase to read the profile."),
+) -> None:
     """Write a sample profile with private file permissions."""
-    path = save_profile(dict(SAMPLE), out)
-    console.print(f"wrote {path} with mode 0600. Edit it, then keep it private.")
+    password = None
+    if encrypt:
+        password = typer.prompt("Passphrase", hide_input=True, confirmation_prompt=True)
+    path = save_profile(dict(SAMPLE), out, password=password)
+    note = "encrypted" if password else "plain JSON"
+    console.print(f"wrote {path} ({note}) with mode 0600. Edit it, then keep it private.")
 
 
 @app.command()
@@ -40,9 +58,19 @@ def fill(
     profile_path: Path = typer.Option(Path("profile.json"), "--profile", "-p"),
     flatten: bool = typer.Option(False, "--flatten", help="Rasterize the filled PDF."),
     set_value: list[str] = typer.Option([], "--set", help="Override a field: name=value"),
+    passphrase: str | None = typer.Option(None, "--passphrase", help="Passphrase for an encrypted profile."),
 ) -> None:
     """Fill a PDF from a profile."""
-    data = load_profile(profile_path)
+    try:
+        data = load_profile(profile_path, password=passphrase)
+    except ProfileLocked as exc:
+        if passphrase is None:
+            passphrase = typer.prompt("Profile passphrase", hide_input=True)
+        try:
+            data = load_profile(profile_path, password=passphrase)
+        except ProfileLocked:
+            console.print("[red]The profile could not be unlocked. Check the passphrase.[/red]")
+            raise typer.Exit(code=2) from exc
     items, _pages = inspect_pdf(pdf)
     values = {item.name: value_for_field(item.name, data) for item in items}
     for raw in set_value:

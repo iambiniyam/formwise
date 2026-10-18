@@ -9,9 +9,11 @@ Drop in a fillable PDF. formwise reads the fields, matches them to your profile,
 
 ![formwise web UI](docs/demo.png)
 
-Status: v0.1.0.
+Status: v0.1.1.
 
 ## Why
+
+See [how this compares](docs/comparison.md) with the closest tools.
 
 Immigration, tax, school, medical, and rental forms ask for the same details again and again. Most online PDF fillers upload the form and the answers to a server.
 
@@ -21,7 +23,8 @@ formwise keeps both local. It matches common field names, shows its work, and on
 
 - Reads AcroForm text fields, checkboxes, radio groups, and choice lists.
 - Matches field names such as `fname`, `surname`, `zip`, and `date_of_birth`.
-- Suggests values from a local JSON profile with `0600` permissions.
+- Suggests values from a local profile with `0600` permissions.
+- Encrypts the profile with a passphrase when you pass `--encrypt`.
 - Lets you override every value before filling.
 - Optionally flattens the result by rasterizing the pages.
 - Runs as a CLI and a local web UI.
@@ -33,7 +36,7 @@ git clone https://github.com/iambiniyam/formwise.git
 cd formwise
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-formwise profile --out profile.json
+formwise profile --encrypt --out profile.json
 formwise fields examples/sample-form.pdf
 formwise fill examples/sample-form.pdf --profile profile.json -o filled.pdf
 formwise serve
@@ -45,7 +48,7 @@ formwise serve
 
 ```bash
 # create a profile
-formwise profile --out profile.json
+formwise profile --encrypt --out profile.json
 
 # inspect fields
 formwise fields form.pdf
@@ -95,7 +98,8 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 ## Privacy
 
 - No network calls at runtime.
-- The profile is a local JSON file with `0600` permissions.
+- The profile is local and has `0600` permissions.
+- With `--encrypt`, the profile is encrypted at rest with a passphrase. You will be prompted when filling.
 - Uploaded PDFs and filled outputs stay in `~/.formwise/out` until you delete them.
 - The web UI binds to 127.0.0.1.
 - No telemetry and no accounts.
@@ -105,7 +109,7 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 - Digital and scanned forms are not supported yet. Only PDFs with AcroForm fields.
 - A wrong match is possible. Review every field.
 - Flattening rasterizes the PDF, so text is no longer selectable.
-- The default profile is plain JSON on disk. Protect the file or keep it on an encrypted disk.
+- Without `--encrypt`, the profile is plain JSON on disk. Encrypt it or keep it on an encrypted disk.
 - The current UI handles one PDF at a time.
 
 ## Tests
@@ -114,20 +118,19 @@ Unmatched fields stay blank. The UI shows every field so you can fix it.
 pytest -q
 ```
 
-The suite covers profile matching, field inspection, text and checkbox filling, preview, and flattening. It has 4 tests.
+The suite covers profile matching, field inspection, text and checkbox filling, encryption, preview, and flattening. It has 5 tests.
 
 ## Packaging
 
 formwise is a Python package. It is not an npm package because the PDF runtime is Python.
 
 - PyPI: `pip install formwise`
-- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.0/formwise-0.1.0-py3-none-any.whl`
+- Release wheel: `pip install https://github.com/iambiniyam/formwise/releases/download/v0.1.1/formwise-0.1.1-py3-none-any.whl`
 - The release workflow uses PyPI Trusted Publishing. A maintainer configures the PyPI project and the `pypi` environment once, then sets the repository variable `PUBLISH_PYPI=true`. No API token is stored in the repository. Until that setup exists, install the wheel attached to the GitHub release.
 
 ## Roadmap
 
 - scanned PDF field detection with OCR
-- encrypted profile with a passphrase
 - multi-page and multi-file batches
 - signature fields with a clear review step
 - XFA form support

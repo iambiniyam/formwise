@@ -15,3 +15,21 @@ def test_value_for_field_uses_profile():
     assert value_for_field("fname", profile) == "Jane"
     assert value_for_field("ZIP", profile) == "62704"
     assert value_for_field("unknown", profile) == ""
+
+
+def test_encrypted_profile_round_trip(tmp_path):
+    import pytest
+
+    from formwise.profile import ProfileLocked, load_profile, save_profile
+
+    path = tmp_path / "profile.json"
+    save_profile({"first_name": "Jane"}, path, password="correct horse")
+    raw = path.read_text()
+    assert '"formwise": 1' in raw
+    assert "Jane" not in raw
+    assert (path.stat().st_mode & 0o777) == 0o600
+    with pytest.raises(ProfileLocked):
+        load_profile(path)
+    assert load_profile(path, password="correct horse")["first_name"] == "Jane"
+    with pytest.raises(ProfileLocked):
+        load_profile(path, password="wrong")

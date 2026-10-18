@@ -15,6 +15,11 @@
 - License: BSD-3-Clause
 - Development dependency used to generate the sample form and tests. Not required at runtime.
 
+## cryptography
+
+- License: Apache-2.0 / BSD-3-Clause
+- Used only for the optional encrypted profile.
+
 ## Other dependencies
 
 FastAPI, Uvicorn, Pillow, Typer, python-multipart. See `pyproject.toml`.

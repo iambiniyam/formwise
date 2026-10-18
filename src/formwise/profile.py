@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -23,6 +24,58 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "date_of_birth": ("date of birth", "dob", "birth date", "birthdate", "birthday"),
 }
 
+ENVELOPE_VERSION = 1
+PBKDF2_ITERATIONS = 390_000
+
+
+class ProfileLocked(RuntimeError):
+    """Raised when an encrypted profile needs a passphrase."""
+
+
+def _derive(password: str, salt: bytes) -> bytes:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+    return PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=PBKDF2_ITERATIONS,
+    ).derive(password.encode("utf-8"))
+
+
+def _encrypt(profile: dict[str, str], password: str) -> str:
+    from cryptography.fernet import Fernet
+
+    salt = os.urandom(16)
+    key = base64.urlsafe_b64encode(_derive(password, salt))
+    token = Fernet(key).encrypt(json.dumps(profile, ensure_ascii=False).encode("utf-8"))
+    return json.dumps(
+        {
+            "formwise": ENVELOPE_VERSION,
+            "kdf": "pbkdf2-sha256",
+            "iterations": PBKDF2_ITERATIONS,
+            "salt": base64.b64encode(salt).decode("ascii"),
+            "token": token.decode("ascii"),
+        }
+    )
+
+
+def _decrypt(payload: dict[str, object], password: str) -> dict[str, str]:
+    from cryptography.fernet import Fernet, InvalidToken
+
+    if payload.get("kdf") != "pbkdf2-sha256":
+        raise ProfileLocked("unsupported profile encryption")
+    try:
+        salt = base64.b64decode(str(payload["salt"]))
+        token = str(payload["token"]).encode("ascii")
+        key = base64.urlsafe_b64encode(_derive(password, salt))
+        data = json.loads(Fernet(key).decrypt(token))
+    except (KeyError, ValueError, InvalidToken) as exc:
+        raise ProfileLocked("wrong passphrase or damaged profile") from exc
+    return {str(key): str(value) for key, value in data.items() if value is not None}
+
+
 SAMPLE = {
     "first_name": "Jane",
     "last_name": "Doe",
@@ -41,22 +94,30 @@ def normalize(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
 
 
-def load_profile(path: Path | str | None = None) -> dict[str, str]:
+def _read(path: Path, password: str | None) -> dict[str, str]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict) and payload.get("formwise") == ENVELOPE_VERSION:
+        if not password:
+            raise ProfileLocked("profile is encrypted; pass a passphrase")
+        return _decrypt(payload, password)
+    return {str(key): str(value) for key, value in payload.items() if value is not None}
+
+
+def load_profile(path: Path | str | None = None, password: str | None = None) -> dict[str, str]:
     path = Path(path) if path else None
     if path and path.exists():
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return {str(key): str(value) for key, value in data.items() if value is not None}
+        return _read(path, password)
     default = Path(os.getenv("FORMWISE_PROFILE", str(Path.home() / ".formwise" / "profile.json")))
     if default.exists():
-        data = json.loads(default.read_text(encoding="utf-8"))
-        return {str(key): str(value) for key, value in data.items() if value is not None}
+        return _read(default, password)
     return dict(SAMPLE)
 
 
-def save_profile(profile: dict[str, str], path: Path | str) -> Path:
+def save_profile(profile: dict[str, str], path: Path | str, password: str | None = None) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(profile, indent=2), encoding="utf-8")
+    payload = _encrypt(profile, password) if password else json.dumps(profile, indent=2)
+    path.write_text(payload, encoding="utf-8")
     path.chmod(0o600)
     return path
 
@@ -87,3 +148,14 @@ def value_for_field(field_name: str, profile: dict[str, str]) -> str:
         if normalize(profile_key) == normalized:
             return value
     return ""
+
+
+def is_encrypted(path: Path | str) -> bool:
+    path = Path(path)
+    if not path.exists():
+        return False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return isinstance(payload, dict) and payload.get("formwise") == ENVELOPE_VERSION

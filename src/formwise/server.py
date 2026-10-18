@@ -13,13 +13,13 @@ from pydantic import BaseModel
 
 from .config import output_root, profile_path
 from .fields import fill_pdf, inspect_pdf, preview_pdf
-from .profile import load_profile, value_for_field
+from .profile import ProfileLocked, load_profile, value_for_field
 
 STATIC = Path(__file__).resolve().parent / "static"
 MAX_UPLOAD = 25 * 1024 * 1024
 MAX_PAGES = 100
 
-app = FastAPI(title="formwise", version="0.1.0")
+app = FastAPI(title="formwise", version="0.1.1")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
@@ -60,7 +60,12 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
         shutil.rmtree(folder, ignore_errors=True)
         raise HTTPException(status_code=413, detail="PDF has too many pages (max 100)")
     preview_pdf(source).save(folder / "preview.png")
-    profile = load_profile(profile_path())
+    locked = False
+    try:
+        profile = load_profile(profile_path())
+    except ProfileLocked:
+        profile = {}
+        locked = True
     items = []
     for field in fields:
         data = field.to_dict()
@@ -72,6 +77,7 @@ async def inspect(file: UploadFile = File(...)) -> JSONResponse:
             "pages": pages,
             "fields": items,
             "profile_keys": sorted(profile.keys()),
+            "profile_locked": locked,
             "preview": f"/files/{job}/preview.png",
         }
     )

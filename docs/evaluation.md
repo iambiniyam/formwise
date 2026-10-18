@@ -41,3 +41,13 @@ The profile has 10 personal values. The checkbox is set by hand.
 formwise fields examples/sample-form.pdf
 formwise fill examples/sample-form.pdf --profile examples/profile.json -o /tmp/filled.pdf
 ```
+
+
+## Encryption check
+
+- `formwise profile --encrypt` wrote a 550-byte envelope with mode 600.
+- The plaintext name `Jane` was not present in the file.
+- Loading without a passphrase raised `ProfileLocked`.
+- Loading with the correct passphrase returned the values.
+- Loading with a wrong passphrase was rejected.
+- Filling the sample form from the encrypted profile succeeded with 10 fields.
